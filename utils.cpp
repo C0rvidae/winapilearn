@@ -15,7 +15,7 @@ void printError(DWORD id) {
                           (LPWSTR) &msg,
                           0,
                           nullptr);
-    printf("[!] %ls\n", msg);
+    printf("[!] 0x%08lx | %ls\n", id, msg);
     free(msg);
     msg = nullptr;
 }

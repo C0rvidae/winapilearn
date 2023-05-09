@@ -3,6 +3,14 @@
 #define WINAPILEARN_NTDLLFUNC_H
 
 #include <windows.h>
+#include <winternl.h>
+
+typedef NTSTATUS (WINAPI *LPFUN_NtOpenProcess) (
+    OUT PHANDLE ProcessHandle,
+    IN ACCESS_MASK AccessMask,
+    IN POBJECT_ATTRIBUTES ObjectAttributes,
+    IN PCLIENT_ID ClientId
+);
 
 typedef NTSTATUS (WINAPI *LPFUN_NtCreateThreadEx) (
     OUT PHANDLE hThread,
@@ -24,7 +32,7 @@ typedef NTSTATUS (WINAPI *LPFUN_NtAllocateVirtualMemory) (
     IN HANDLE ProcessHandle,
     IN OUT PVOID *BaseAddress,
     IN ULONG ZeroBits,
-    IN OUT PULONG RegionSize,
+    IN OUT PSIZE_T RegionSize,
     IN ULONG AllocationType,
     IN ULONG Protect
 );
