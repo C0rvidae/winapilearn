@@ -1,4 +1,3 @@
-
 #ifndef WINAPILEARN_NTDLLFUNC_H
 #define WINAPILEARN_NTDLLFUNC_H
 
@@ -9,7 +8,7 @@ typedef NTSTATUS (WINAPI *LPFUN_NtOpenProcess) (
     OUT PHANDLE ProcessHandle,
     IN ACCESS_MASK AccessMask,
     IN POBJECT_ATTRIBUTES ObjectAttributes,
-    IN PCLIENT_ID ClientId
+    IN PCLIENT_ID ClientID
 );
 
 typedef NTSTATUS (WINAPI *LPFUN_NtCreateThreadEx) (
@@ -26,8 +25,6 @@ typedef NTSTATUS (WINAPI *LPFUN_NtCreateThreadEx) (
     OUT LPVOID lpBytesBuffer
 );
 
-typedef LPFUN_NtCreateThreadEx LPFUN_NtCreateThreadEx;
-
 typedef NTSTATUS (WINAPI *LPFUN_NtAllocateVirtualMemory) (
     IN HANDLE ProcessHandle,
     IN OUT PVOID *BaseAddress,
@@ -37,6 +34,8 @@ typedef NTSTATUS (WINAPI *LPFUN_NtAllocateVirtualMemory) (
     IN ULONG Protect
 );
 
+typedef LPFUN_NtOpenProcess LPFUN_NtOpenProcess;
+typedef LPFUN_NtCreateThreadEx LPFUN_NtCreateThreadEx;
 typedef LPFUN_NtAllocateVirtualMemory LPFUN_NtAllocateVirtualMemory;
 
 #endif //WINAPILEARN_NTDLLFUNC_H

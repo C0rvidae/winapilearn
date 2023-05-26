@@ -6,9 +6,8 @@
 
 
 void printError(DWORD id) {
-    DWORD size;
     wchar_t *msg;
-    size = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
                           nullptr,
                           id,
                           MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),

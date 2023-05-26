@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include <Windows.h>
+#include <windows.h>
 #include <stringapiset.h>
-#include <Psapi.h>
+#include <psapi.h>
 
 #define MAXSIZE 100
 

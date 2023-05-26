@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <memoryapi.h>
 #include <cstdio>
-#include "../utils.h"
+#include "../../include/utils.h"
 
 int main() {
     /* VARS */

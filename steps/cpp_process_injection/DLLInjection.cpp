@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <unistd.h>
-#include "../utils.h"
+#include "../../include/utils.h"
 
 DWORD WaitForNotepad() {
     DWORD dNotepadPid = 0;
@@ -25,10 +25,6 @@ int main() {
     LPVOID lpAllocatedMemory = nullptr;
     auto * dRemotePid = (DWORD *) malloc(sizeof(DWORD));
     wchar_t cDllLocation[MAX_PATH] = LR"(C:\Users\Public\dlls\libbasicdll.dll)";
-//    if (!(dNotepadPid = FindFirstNotepad())) {
-//        printf("[!] No notepad.exe found\n");
-//        return EXIT_FAILURE;
-//    }
     dNotepadPid = WaitForNotepad();
     printf("[+] Found notepad.exe with PID %lu\n", dNotepadPid);
     if(!(hNotepad = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dNotepadPid))) goto error;
